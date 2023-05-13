@@ -37,7 +37,6 @@ class HeatmapGenerator ():
         model = torch.nn.DataParallel(model).cuda()
 
         modelCheckpoint = torch.load(pathModel)
-        model.load_state_dict(modelCheckpoint['state_dict'])
 
         self.model = model.module.densenet121.features
         self.model.eval()
@@ -98,7 +97,7 @@ pathModel = 'models/m-25012018-123527.pth.tar'
 nnArchitecture = 'DENSE-NET-121'
 nnClassCount = 14
 
-transCrop = 224
+transCrop = 524
 
 h = HeatmapGenerator(pathModel, nnArchitecture, nnClassCount, transCrop)
 h.generate(pathInputImage, pathOutputImage, transCrop)

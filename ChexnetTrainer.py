@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn.functional as func
 
-from sklearn.metrics.ranking import roc_auc_score
+from sklearn.metrics import roc_auc_score
 
 from DensenetModels import DenseNet121
 from DensenetModels import DenseNet169
@@ -23,8 +23,7 @@ from DensenetModels import ResNet50
 from DensenetModels import SE_ResNet50
 from DensenetModels import SE_DenseNet121
 from DatasetGenerator import DatasetGenerator
-import senet
-
+from torch.autograd import no_grad
 
 
 #--------------------------------------------------------------------------------
@@ -53,9 +52,7 @@ class ChexnetTrainer ():
         elif nnArchitecture == 'DENSE-NET-169': model = DenseNet169(nnClassCount, nnIsTrained).cuda()
         elif nnArchitecture == 'DENSE-NET-201': model = DenseNet201(nnClassCount, nnIsTrained).cuda()
         elif nnArchitecture == 'RES-NET-50': model = ResNet50(nnClassCount, nnIsTrained).cuda()
-        #elif nnArchitecture == 'SE-RES-NET-50': model = SE_ResNet50(nnClassCount, nnIsTrained).cuda()
-        elif nnArchitecture == 'SE-RES-NET-50': model = senet.se_resnet50(nnClassCount, nnIsTrained).cuda()
-        elif nnArchitecture == 'SE-NET-154': model = senet.senet154(nnClassCount, nnIsTrained).cuda()
+        elif nnArchitecture == 'SE-RES-NET-50': model = SE_ResNet50(nnClassCount, nnIsTrained).cuda()
         elif nnArchitecture == 'SE-DENSE-NET-121': model = SE_DenseNet121(nnClassCount, nnIsTrained).cuda()
 
 
@@ -147,28 +144,23 @@ class ChexnetTrainer ():
 
     #--------------------------------------------------------------------------------
 
-    def epochVal (model, dataLoader, optimizer, scheduler, epochMax, classCount, loss):
-
-        model.eval ()
-
+    def epochVal(model, dataLoader, optimizer, scheduler, epochMax, classCount, loss):
+        model.eval()
         lossVal = 0
         lossValNorm = 0
-
         losstensorMean = 0
 
-        for i, (input, target) in enumerate (dataLoader):
-
+        for i, (input, target) in enumerate(dataLoader):
             target = target.cuda()
+            with torch.no_grad():
+                varInput = torch.autograd.Variable(input)
+                varTarget = torch.autograd.Variable(target)
+                varOutput = model(varInput)  # Access the underlying model output using .module
 
-            varInput = torch.autograd.Variable(input, volatile=True)
-            varTarget = torch.autograd.Variable(target, volatile=True)
-            varOutput = model(varInput)
-
-            losstensor = loss(varOutput, varTarget)
-            losstensorMean += losstensor
-
-            lossVal += losstensor.data[0]
-            lossValNorm += 1
+                losstensor = loss(varOutput, varTarget)
+                losstensorMean += losstensor
+                lossVal += losstensor.item()
+                lossValNorm += 1
 
         outLoss = lossVal / lossValNorm
         losstensorMean = losstensorMean / lossValNorm
@@ -225,8 +217,6 @@ class ChexnetTrainer ():
         elif nnArchitecture == 'DENSE-NET-201': model = DenseNet201(nnClassCount, nnIsTrained).cuda()
         elif nnArchitecture == 'RES-NET-50': model = ResNet50(nnClassCount, nnIsTrained).cuda()
         #elif nnArchitecture == 'SE-RES-NET-50': model = SE_ResNet50(nnClassCount, nnIsTrained).cuda()
-        elif nnArchitecture == 'SE-RES-NET-50': model = senet.se_resnet50(nnClassCount, nnIsTrained).cuda()
-        elif nnArchitecture == 'SE-NET-154': model = senet.senet154(nnClassCount, nnIsTrained).cuda()
         elif nnArchitecture == 'SE-DENSE-NET-121': model = SE_DenseNet121(nnClassCount, nnIsTrained).cuda()
 
 
@@ -234,7 +224,7 @@ class ChexnetTrainer ():
         model = torch.nn.DataParallel(model).cuda()
 
         modelCheckpoint = torch.load(pathModel)
-        model.load_state_dict(modelCheckpoint['state_dict'])
+        print(modelCheckpoint)
 
         #-------------------- SETTINGS: DATA TRANSFORMS, TEN CROPS
         normalize = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -262,7 +252,8 @@ class ChexnetTrainer ():
 
             bs, n_crops, c, h, w = input.size()
 
-            varInput = torch.autograd.Variable(input.view(-1, c, h, w).cuda(), volatile=True)
+            with torch.no_grad():
+                varInput = input.view(-1, c, h, w).cuda()
 
             out = model(varInput)
             outMean = out.view(bs, n_crops, -1).mean(1)

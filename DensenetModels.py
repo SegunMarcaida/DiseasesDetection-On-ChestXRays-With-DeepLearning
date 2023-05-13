@@ -66,7 +66,7 @@ class SE_DenseNet121(nn.Module):
 
         self.densenet121 = se_densenet.densenet121(pretrained=isTrained)
 
-        kernelCount = self.densenet121.classifier.in_features
+        kernelCount = self.densenet121.classifier[-1].in_features
 
         self.densenet121.classifier = nn.Sequential(nn.Linear(kernelCount, classCount), nn.Sigmoid())
 

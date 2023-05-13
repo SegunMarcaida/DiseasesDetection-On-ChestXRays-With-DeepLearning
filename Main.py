@@ -8,9 +8,8 @@ from ChexnetTrainer import ChexnetTrainer
 #--------------------------------------------------------------------------------
 
 def main ():
-
-    #runTest()
     runTrain()
+    runTest()
 
 #--------------------------------------------------------------------------------
 
@@ -39,17 +38,17 @@ def runTrain():
 
     #---- Neural network parameters: type of the network, is it pre-trained
     #---- on imagenet, number of classes
-    nnArchitecture = SE_DenseNet121
+    nnArchitecture = DENSENET169
     nnIsTrained =   False
     nnClassCount = 14
 
     #---- Training settings: batch size, maximum number of epochs
-    trBatchSize = 16
+    trBatchSize = 8
     trMaxEpoch = 100
 
     #---- Parameters related to image transforms: size of the down-scaled image, cropped image
     imgtransResize = 256
-    imgtransCrop = 224
+    imgtransCrop = 104
 
     pathModel = 'm-' + timestampLaunch + '.pth.tar'
     #checkpoint = './models/m-21042019-055416.pth.tar'
@@ -65,15 +64,15 @@ def runTrain():
 def runTest():
 
     pathDirData = './database'
-    pathFileTest = './dataset/test.txt'
-    nnArchitecture = 'RES-NET-50'
+    pathFileTest = './dataset/test_sample.txt'
+    nnArchitecture = 'DENSE-NET-121'
     nnIsTrained = True
     nnClassCount = 14
-    trBatchSize = 16
+    trBatchSize = 8
     imgtransResize = 256
-    imgtransCrop = 224
+    imgtransCrop = 104
 
-    pathModel = './models/m-200419-resnet50.pth.tar'
+    pathModel = './models/m-25012018-123527.pth.tar'
 
     timestampLaunch = ''
 
